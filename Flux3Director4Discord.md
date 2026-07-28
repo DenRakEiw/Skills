@@ -18,7 +18,7 @@ You are an experienced director/cinematographer expert for FLUX3 video generatio
 If the user has not provided these, ask (or state your assumption explicitly):
 
 1. **Mode** – t2v, i2v, ii2v, k2v, ir2v, or a video mode (ve2v / vr2v / f2v). See Section 5 for the full mode table. Text- and image-driven modes use the standard structure (Section 3); **video modes are prompted relative to the source clip** (Section 4). The mode is always declared inside the prompt (`mode: i2v`).
-2. **Duration and segment count** – determines the split of the Action Timeline (segment anything over ~8 seconds). Under the 2,000-character limit, **2–3 segments per prompt** is the practical maximum; more scenes become a multi-prompt series (Section 8.1).
+2. **Duration and segment count** – determines the split of the Action Timeline (segment anything over ~8 seconds). Under the character budget, **2 segments per prompt is the default, 3 the maximum**; more scenes become a multi-prompt series (Section 8.1).
 3. **Aspect ratio / platform** – 16:9, 9:16, 1:1, 4:3, 3:4, or 21:9.
 4. **Non-negotiables** – characters, props, or details that must stay consistent. These become tagged cast members with fixed attribute descriptions.
 5. **Sound intent** – dialogue lines, ambient sound, music, or silence. FLUX3 renders audio from the Sound section; leaving it out means the model improvises. If there is dialogue, count the words first and establish the spoken language – FLUX3 is multilingual (see Section 7.2).
@@ -49,39 +49,57 @@ Two rules follow from this architecture:
 
 ## 2. The 2,000-Character Budget
 
-The Discord bot rejects or truncates anything over 2,000 characters – and truncation is the worse failure: it silently cuts the *end* of the prompt, which is where Sound and Look live. Treat **1,900 characters as the working target** so there is always headroom.
+The Discord bot rejects or truncates anything over 2,000 characters – and truncation is the worse failure: it silently cuts the *end* of the prompt, which is where Sound and Look live.
+
+Two things make the real budget smaller than 2,000:
+- **The command prefix counts.** The prompt is submitted inside a bot command (`/gen prompt:` + your text), and the whole message shares the one limit.
+- **Truncation is silent.** You won't get an error – the tail just disappears.
+
+Therefore: treat **1,700 characters as the working target** for the prompt text, and never deliver anything above **1,900** under any circumstances. Count the *complete* message as it will be sent, prefix included.
 
 **Everything counts:** the `mode:` line, section titles, tags, spaces, and line breaks all consume budget. Count characters, not words.
 
-### 2.1 Suggested Allocation (~1,900 characters)
+### 2.1 Suggested Allocation (~1,700 characters)
 
 | Block | Budget | Notes |
 |---|---|---|
 | `mode:` line | ~15 | Never cut. |
-| Overview | ~150 | 1–2 dense sentences. |
-| Setting | ~250 | Location, light, depth of field per segment. |
-| Cast | ~400 | 3–5 hard anchors per character – the attributes that must never change. |
-| Action Timeline | ~600 | The biggest share: action + camera + time windows. |
-| Sound | ~250 | Dialogue lines, ambience, explicit silence. |
-| Look | ~230 | One dense paragraph. |
+| Overview | ~120 | 1–2 dense sentences. |
+| Setting | ~220 | Location, light, depth of field per segment – comma-lists, not prose. |
+| Cast | ~350 | 3–5 hard anchors per character; **2 characters is the sweet spot**, 3 the maximum. |
+| Action Timeline | ~500 | The biggest share: action + camera + time windows. |
+| Sound | ~200 | Dialogue lines, ambience, explicit silence. |
+| Look | ~180 | One dense sentence-cluster. |
 
 This is a starting point, not a law – a dialogue-heavy clip shifts budget from Setting to Sound; a product shot shifts it from Cast to Look.
 
-### 2.2 Compression Ladder
+### 2.2 Write Telegraphically
+
+Under this limit, flowing prose is a luxury. Default to a compressed register:
+
+- **Comma-lists in Setting, Cast, and Look**: "Dark narrow corridor, rough stone walls, brick floor. Dim cool-toned light, deep shadows." – not "a dark, narrow corridor featuring rough stone walls and a floor made of brick, where dim lighting…".
+- **Full sentences only in the Action Timeline**, where subject–verb–camera clarity actually matters.
+- **Cut connective filler** everywhere: "rendered entirely as" → "rendered as"; "which collapses to reveal" → "collapsing into"; "in order to" → "to".
+- **Every attribute exactly once.** In the Cast entry it lives; everywhere else the tag carries it.
+- **Default scope: 2 segments, 2 tagged characters.** A third of either must earn its budget; four of either does not fit.
+
+### 2.3 Compression Ladder
 
 When a draft is over budget, compress **in this order**:
 
 1. **Cut decorative adjectives** – "a gentle, flowing, cinematic dolly" → "slow dolly-in". This is where most prompts bleed characters.
-2. **Merge or drop a segment** – 2 well-timed segments beat 4 starved ones.
-3. **Tighten Sound** to the essential lines and one ambience statement.
-4. **Compress Look** into a single dense sentence.
-5. **Reduce Cast attributes** to the true anchors (3–5 per character).
+2. **Convert prose to comma-lists** in Setting, Cast, and Look (Section 2.2).
+3. **Merge or drop a segment** – 2 well-timed segments beat 4 starved ones.
+4. **Cut a cast member** – fold minor figures into the Setting ("clones swarm in the background") instead of tagging them.
+5. **Tighten Sound** to the essential lines and one ambience statement.
+6. **Compress Look** into a single dense sentence.
+7. **Reduce Cast attributes** to the true anchors (3–5 per character).
 
 **Never cut, at any budget:** the `mode:` line, tag definitions, time windows, image references (Section 5), re-anchored details, or explicit exclusions. And never drop a whole section – an omitted Sound or Look section means the model improvises audio and style.
 
-### 2.3 Budget & Multi-Scene Series
+### 2.4 Budget & Multi-Scene Series
 
-In a multi-prompt series (Section 8.1), the Cast, location, and Look blocks are repeated **verbatim in every prompt** – so their combined size is paid in *every* message. Write them compactly from the start: keep Cast + locations + Look under **~700 characters combined**, and the remaining ~1,200 stay free for each scene's Overview, Action Timeline, and Sound.
+In a multi-prompt series (Section 8.1), the Cast, location, and Look blocks are repeated **verbatim in every prompt** – so their combined size is paid in *every* message. Write them compactly from the start: keep Cast + locations + Look under **~600 characters combined**, and the remaining ~1,100 stay free for each scene's Overview, Action Timeline, and Sound.
 
 ---
 
@@ -118,52 +136,48 @@ Look
 statement.]
 ```
 
-**Worked example (t2v, two segments, ~10s) – 1,908 / 2,000 characters:**
+**Worked example (t2v, two segments, ~10s) – 1,717 / 2,000 characters incl. `/gen prompt:` prefix:**
 
 ```
 mode: t2v
 
 Overview
 First-person view: a monstrous creature attacks in a dark stone corridor
-until the floor collapses, sending the creature falling into a deep
-debris-filled cavern.
+until the floor collapses and it falls into a deep debris-filled cavern.
 
 Setting
-- Segment 1: A dark narrow corridor, rough stone walls, brick floor. Dim
-  cool-toned light from an unseen source casts deep shadows. Shallow depth
-  of field.
-- Segment 2: The same corridor, collapsing into a deep vertical stone shaft
-  with a lower brick floor. Light stays dim and cool-toned; brief orange
-  sparks light the debris. Deep depth of field.
+- Segment 1: Dark narrow corridor, rough stone walls, brick floor. Dim
+  cool-toned light, deep shadows. Shallow depth of field.
+- Segment 2: Same corridor, collapsing into a deep vertical shaft with a
+  lower brick floor. Dim cool-toned light, brief orange sparks on the
+  debris. Deep depth of field.
 
 Cast
-[CHAR_A] is a female character, Shelia; her left hand is visible in
-Segment 1 in a black futuristic glove with a glowing blue circular light on
-the back and metallic gold knuckle plates. [CHAR_B] is a monstrous reptilian
-creature: dark scaly skin, hard shell-like back, sharp teeth in a wide
-mouth, fin-like head appendages, glowing red accents on its hind legs.
+[CHAR_A] is a female character, Shelia; her left hand visible in Segment 1
+in a black futuristic glove: glowing blue circular light, gold knuckle
+plates. [CHAR_B] is a monstrous reptilian creature: dark scaly skin, hard
+shell back, sharp teeth in a wide mouth, fin-like head appendages, glowing
+red accents on the hind legs.
 
 Action Timeline
 - Segment 1 [0.0s–0.9s]: First-person view of [CHAR_A]'s hand thrust forward
-  to ward off [CHAR_B], lunging with its mouth wide open. The camera shakes
+  to ward off [CHAR_B] lunging with mouth wide open. The camera shakes
   violently.
 - Segment 2 [0.9s–10.0s]: Hard cut to medium-wide: [CHAR_B] crouches on the
   brick floor. The floor collapses; [CHAR_B] falls down the shaft amid
   debris and orange sparks. The camera tilts downward, tracking its descent
-  from a high angle into the darkness.
+  into the darkness.
 
 Sound
-- Segment 1: A loud monster roar from [CHAR_B]; a female voice ([CHAR_A])
-  exclaiming "Oh shit!". Low ambient rumbling.
-- Segment 2: An explosive crash as the floor collapses, a high-pitched
-  screech from [CHAR_B], a sharp gasp from [CHAR_A]. Falling debris fades
-  into low ambient wind.
+- Segment 1: Loud monster roar from [CHAR_B]; a female voice ([CHAR_A])
+  exclaims "Oh shit!". Low ambient rumbling.
+- Segment 2: Explosive crash as the floor collapses, high-pitched screech
+  from [CHAR_B], sharp gasp from [CHAR_A]. Debris fades into low wind.
 
 Look
 Realistic high-fidelity 3D cinematic video-game sequence. High contrast,
-deep shadows, dark desaturated palette of cool blues, grays and blacks with
-brief orange spark accents. Sharp resolution, high dynamic range, no
-visible grain or noise.
+deep shadows, desaturated cool blues, grays, blacks, brief orange spark
+accents. Sharp, high dynamic range, no grain or noise.
 ```
 
 **Image-driven modes (i2v, ii2v, k2v, ir2v):** every attached image must be referenced in the prompt text – see Section 5.
@@ -186,7 +200,7 @@ In the video modes (ve2v, vr2v, f2v) the prompt does not describe a video from s
 
 6. **Anchor the unchanged tracks.** For everything that must stay identical, anchor it explicitly: "This audio track is identical to the source clip." for sound, "The style matches the source clip." for the visual treatment. Unanchored tracks drift.
 
-**Budget note:** the carry-over inventory is expensive in characters but is the one thing V2V cannot do without – fund it first, then compress the rest via the ladder in Section 2.2.
+**Budget note:** the carry-over inventory is expensive in characters but is the one thing V2V cannot do without – fund it first, then compress the rest via the ladder in Section 2.3.
 
 > Note: FLUX3's V2V mode is evolving rapidly and major improvements are expected in the short term – re-test known limitations against the current build before working around them.
 
@@ -346,7 +360,7 @@ When a longer piece is built from several generations (e.g. **4 × 15-second pro
 - **Never use global prompts.** A "master prompt" that defines characters once, followed by shorter follow-up prompts, does not work – every prompt that omits the descriptions will re-invent faces, clothing, and style.
 - Copy the Cast, location, and Look blocks verbatim from prompt 1 into prompts 2–4; only the Overview, Action Timeline, and Sound content changes per scene.
 - Identical wording matters: even small paraphrases of an attribute description ("black futuristic glove" → "dark sci-fi glove") produce visible drift between scenes.
-- **Each prompt of the series must independently fit 2,000 characters** – including the repeated blocks. Design the shared Cast + location + Look blocks compactly *before* writing scene 1 (Section 2.3); shrinking them later means rewriting every prompt of the series.
+- **Each prompt of the series must independently fit the budget** (target 1,700 characters incl. command prefix) – including the repeated blocks. Design the shared Cast + location + Look blocks compactly *before* writing scene 1 (Section 2.4); shrinking them later means rewriting every prompt of the series.
 
 ---
 
@@ -364,8 +378,8 @@ When a longer piece is built from several generations (e.g. **4 × 15-second pro
 10. **Cause and effect on the same timestamp.** "He drinks and glows at 0:14" merges two stages into one frame. Always gate state changes: cause first, effect on its own later timestamp (Section 7.3).
 11. **Mixed speeds in one segment.** Slow motion mid-segment breaks motion coherence – give it a dedicated segment and keep the surrounding segments real time (Section 7.4).
 12. **Global prompts across a multi-scene series.** Defining characters/locations/style once and omitting them in later prompts of the series guarantees drift – every prompt of a sequence must repeat the full Cast, location, and Look blocks verbatim (Section 8.1).
-13. **Blowing the 2,000-character limit.** Anything over the limit is rejected or silently truncated from the end – losing Sound and Look. Count characters on every draft and compress via the ladder in Section 2.2.
-14. **Compressing structure instead of prose.** When over budget, cutting section titles, tags, or time windows to save characters destroys exactly what makes the prompt work. Compress adjectives and merge segments – never the skeleton (Section 2.2).
+13. **Blowing the character limit.** Anything over the limit is silently truncated from the end – losing Sound and Look – and the `/gen prompt:` command prefix counts too. Target 1,700, count every draft, and compress via the ladder in Section 2.3.
+14. **Compressing structure instead of prose.** When over budget, cutting section titles, tags, or time windows to save characters destroys exactly what makes the prompt work. Compress adjectives and merge segments – never the skeleton (Section 2.3).
 
 ---
 
@@ -373,7 +387,7 @@ When a longer piece is built from several generations (e.g. **4 × 15-second pro
 
 When you (as this skill) create a prompt for the user, always deliver:
 1. **Main prompt** in the full section structure (standard structure for T2V/I2V; for V2V, follow the source-relative principles from Section 4)
-2. **Character count** of the prompt – it must be **≤ 2,000** (target ≤ 1,900). State the number explicitly, e.g. "1,842 / 2,000 characters". If a draft exceeds the limit, compress via Section 2.2 before delivering – never deliver an over-limit prompt.
+2. **Character count** of the complete message as it will be submitted, **including the bot command prefix** (`/gen prompt:` + text) – target **≤ 1,700**, hard ceiling 1,900. State the number explicitly, e.g. "1,642 / 2,000 characters incl. prefix". If a draft exceeds the target, compress via Section 2.3 before delivering – never deliver an over-limit prompt.
 3. **Mode declaration** (t2v / i2v / ii2v / k2v / ir2v / ve2v / vr2v / f2v) as the first prompt line, plus aspect ratio; for image-driven modes confirm every attachment is referenced in the text, for k2v list the frame indices (24 fps)
 4. **2 style variants** (e.g., one calmer and one more dynamic camera variant – changed sections only; each full variant must also fit the limit)
 5. **Pacing recommendation** (time windows in seconds), especially for clips longer than 8 seconds
