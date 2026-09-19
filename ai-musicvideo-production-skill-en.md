@@ -106,12 +106,34 @@ Procedural edges read well: diagonal with a sine disturbance, slats, iris, chevr
 
 ## 4. Generation
 
-- **LTX: keep input images small** (~640×480, max 768×432). High-resolution start
-  images make the model output *a static image with a slight zoom* instead of motion.
-  This is the single most common cause of "the lip-sync isn't working".
-- **LTX prompts need direct motion instructions**, e.g. "character lip-syncs their
-  dialog". Describing the scene alone is not enough.
+### LTX lip-sync: the keyframe does the work, not the prompt
+
+This is counter-intuitive and was learned the hard way, after a full set of
+carefully written per-shot prompts was generated and then **thrown away unused**.
+
+- **Control comes from the input image.** The keyframe must be a **close-up with the
+  subject looking into the camera**. Wide shots, three-quarter angles and averted
+  gaze fail no matter how the prompt is written. Fix the framing before touching the
+  text.
+- **Short prompts beat long ones.** Elaborate, scene-specific prompts did not work.
+  What worked was **one short universal prompt reused across every single clip**:
+
+  ```
+  character is aggressively rapping and moving lips in perfect sync with the fast audio beat
+  ```
+
+  Name the action, the energy and the sync – nothing else. Do not write bespoke
+  prompts per shot; vary the **keyframe** instead and leave the text alone.
+- **Keep input images small** (~640×480, max 768×432). High-resolution start images
+  make the model output *a static image with a slight zoom* instead of motion. Along
+  with a non-close-up keyframe, this is the most common cause of "the lip-sync isn't
+  working".
 - LTX clips are truncated at **6.0 s** but are frame-accurate.
+
+**Budget implication:** spend the effort on generating good close-up keyframes, not
+on prompt engineering. Prompt work here has close to zero marginal return.
+
+### Image generation
 - `flux-2-pro` **ignores `aspect_ratio`** and returns 1024×768 – centre-crop to 16:9
   yourself.
 - `nano-banana-pro` accepts **only one image**. For two inputs (tight face reference
@@ -137,7 +159,8 @@ corrected globally.
 
 **Be honest about the ceiling.** Current lip-sync models produce *talking motion*, not
 phoneme accuracy. Say so, and let it change the edit (shorter inserts, more cutaways)
-instead of pretending it can be fixed in post.
+instead of pretending it can be fixed in post – or by rewriting the prompt, which is
+where effort tends to get wasted (Section 4).
 
 ---
 
